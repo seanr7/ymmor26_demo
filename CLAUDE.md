@@ -1,3 +1,47 @@
+## Worktree & Branching Workflow (default)
+
+Unless I say otherwise, follow this for every code-changing task. This is a solo repo with no CI/CD; pushes to the remote are just backups. All review and merging happens locally.
+
+### 1. Start in a new worktree on a new branch
+
+- Never edit directly on `main`. Check with `git branch --show-current` first.
+- Create a worktree inside `.worktrees/` with a new branch:
+```
+git worktree add .worktrees/<short-desc> -b claude/<short-desc> main
+```
+- `cd` into it and work there. One task = one worktree = one branch.
+- After creating the worktree, print its path so I can find it in the VS Code explorer under `.worktrees/`.
+
+### 2. Work and self-review
+
+- Commit in small, focused chunks with clear messages.
+- Before declaring done, run the project's tests/linters. If unclear what those are, ask.
+- Then summarize for me: branch name, worktree path, `git log main..HEAD --oneline`, and `git diff main --stat`. Wait for my approval before merging.
+
+### 3. Merge locally, then push for backup
+
+- From the main repo directory (not the worktree):
+```
+git checkout main
+git merge --no-ff claude/<short-desc>
+git push origin main
+```
+- Then clean up:
+```
+git worktree remove .worktrees/<short-desc>
+git branch -d claude/<short-desc>
+```
+- No PRs, no tags, no other remote actions.
+
+### 4. Parallel tasks
+
+If I start a second task while another worktree is still open, create a fresh worktree for it rather than reusing one.
+
+### 5. Escape hatches
+
+- If I say "stay on this branch", "work in place", or "quick fix", skip the worktree step.
+- If the workflow is blocked (dirty `main`, worktree path exists, branch name taken), stop and tell me before improvising.
+
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
