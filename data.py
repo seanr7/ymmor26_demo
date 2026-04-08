@@ -98,10 +98,11 @@ def make_dataset(rng_key, N, D, dt, n_train_steps, n_spinup, F=8.0):
     trajs = integrate_batch(ics)  # (N, n_train_steps+1, D)
 
     mean = trajs.mean(axis=(0, 1))       # (D,)
-    std  = trajs.std(axis=(0, 1)) + 1e-6 # (D,)
+    std = trajs.std(axis=(0, 1)) + 1e-6  # (D,)
     stats = {"mean": mean, "std": std}
 
-    print(f"dataset: N={N}, D={D}, steps={n_train_steps}, traj shape={trajs.shape}")
+    print(
+        f"dataset: N={N}, D={D}, steps={n_train_steps}, traj shape={trajs.shape}")
     return trajs, stats
 
 
@@ -121,8 +122,8 @@ def make_pairs(trajs, stats):
         targets: (N*T, D)  normalized residuals  (x_{t+1} - x_t) / std
     """
     mean, std = stats["mean"], stats["std"]
-    xs      = (trajs[:, :-1, :] - mean) / std   # (N, T, D)
-    x_next  = (trajs[:, 1:,  :] - mean) / std   # (N, T, D)
+    xs = (trajs[:, :-1, :] - mean) / std   # (N, T, D)
+    x_next = (trajs[:, 1:, :] - mean) / std   # (N, T, D)
     targets = x_next - xs                        # normalized residual
 
     N, T, D = xs.shape
