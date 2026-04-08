@@ -1,5 +1,5 @@
 ---
-name: code-style
+name: cs-standard
 description: Enforces a functional, math-forward code style for personal JAX/Flax/Optax research code with Hydra configs. Use when writing, editing, or refactoring any Python code in this repo — including model definitions, training loops, loss functions, data loading, config dataclasses, and scripts. Covers jax, flax, nn.Module, optax, train_step, loss_fn, jit, vmap, pmap, hydra, ConfigStore, and @hydra.main entrypoints. Prioritizes readability and mathematical clarity over defensive coding, type annotations, and OOP patterns.
 ---
 
