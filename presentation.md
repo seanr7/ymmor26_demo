@@ -67,3 +67,4 @@
   - repo is organized
   - workflow is explicit
   - conventions are written down
+- Subscription tiers
