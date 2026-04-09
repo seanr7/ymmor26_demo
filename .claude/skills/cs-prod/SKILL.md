@@ -1,13 +1,15 @@
 ---
 name: cs-prod
-description: Enforces a defensive, heavily-engineered Python style for code that needs to survive contact with reality — long-running training jobs, shared library code, multi-user pipelines, anything that will be rerun by someone else months later. Use when writing or editing code where silent failures, unchecked inputs, or missing logs would cost real time. Prioritizes robustness, observability, and explicit contracts over line count or mathematical brevity. Not for one-off scripts or experiments.
+description: Enforces a defensive, heavily-engineered class driven, abstraction driven Python style for code that needs to survive contact with reality — long-running training jobs, shared library code, multi-user pipelines, anything that will be rerun by someone else months later. Use when writing or editing code where silent failures, unchecked inputs, or missing logs would cost real time. Prioritizes robustness, observability, and explicit contracts over line count or mathematical brevity. Not for one-off scripts or experiments.
+disable-model-invocation: true
 ---
 
 # code-style-prod
 
 For code that has to keep working when you're not watching it.
 Readability matters less than catching failures early, logging
-enough to debug post-hoc, and making contracts explicit.
+enough to debug post-hoc, and making contracts explicit. Class driven development. 
+Use abstractions where possible. Do not reference or use existing code for style.
 
 ## Rules
 
@@ -50,135 +52,143 @@ enough to debug post-hoc, and making contracts explicit.
 - No magic numbers in function bodies. Hoist them to named constants
   or config fields with a comment explaining the choice.
 
-## Good example
+  ## Additional Patterns and Examples
 
-```python
-from __future__ import annotations
+### Explicit Resource Lifecycle Management
 
-import logging
-from dataclasses import dataclass
+Encapsulate external resources (files, sockets, GPUs) in classes with
+clear ownership and teardown semantics.
 
-import jax
-import jax.numpy as jnp
-from flax.training.train_state import TrainState
+class FileBackedCache:
+    def __init__(self, path: str) -> None:
+        self._path = path
+        self._fh: Optional[IO[str]] = None
 
-logger = logging.getLogger(__name__)
+    def open(self) -> None:
+        if self._fh is not None:
+            raise RuntimeError("File already open")
+        self._fh = open(self._path, "a+")
+        logger.info("Opened cache file", extra={"path": self._path})
 
+    def write(self, key: str, value: str) -> None:
+        if self._fh is None:
+            raise RuntimeError("File not open")
+        self._fh.write(f"{key}:{value}\n")
 
-class ShapeError(ValueError):
-    """Raised when an array has an unexpected shape."""
-
-
-@dataclass(frozen=True)
-class LossConfig:
-    reduction: Literal["mean", "sum"] = "mean"
-    label_smoothing: float = 0.0
-
-    def __post_init__(self) -> None:
-        if not 0.0 <= self.label_smoothing < 1.0:
-            raise ConfigError(
-                f"label_smoothing must be in [0, 1), got {self.label_smoothing}"
-            )
-
-
-def cross_entropy_loss(
-    logits: jax.Array,
-    labels: jax.Array,
-    cfg: LossConfig,
-) -> jax.Array:
-    """Compute cross-entropy loss with optional label smoothing.
-
-    Args:
-        logits: Unnormalized predictions, shape ``(B, C)``.
-        labels: Integer class labels, shape ``(B,)``, values in ``[0, C)``.
-        cfg: Loss configuration.
-
-    Returns:
-        Scalar loss array.
-
-    Raises:
-        ShapeError: If ``logits`` and ``labels`` have incompatible shapes.
-    """
-    if logits.ndim != 2:
-        raise ShapeError(f"logits must be 2D, got shape {logits.shape}")
-    if labels.shape != (logits.shape[0],):
-        raise ShapeError(
-            f"labels shape {labels.shape} incompatible with logits {logits.shape}"
-        )
-
-    num_classes = logits.shape[-1]
-    targets = jax.nn.one_hot(labels, num_classes)
-    if cfg.label_smoothing > 0.0:
-        targets = targets * (1.0 - cfg.label_smoothing) + (
-            cfg.label_smoothing / num_classes
-        )
-
-    log_probs = jax.nn.log_softmax(logits, axis=-1)
-    per_example = -jnp.sum(targets * log_probs, axis=-1)
-
-    if cfg.reduction == "mean":
-        return jnp.mean(per_example)
-    return jnp.sum(per_example)
+    def close(self) -> None:
+        if self._fh:
+            self._fh.close()
+            self._fh = None
+            logger.info("Closed cache file", extra={"path": self._path})
 
 
-def train_step(
-    state: TrainState,
-    batch: dict[str, jax.Array],
-    cfg: LossConfig,
-    step: int,
-) -> tuple[TrainState, dict[str, float]]:
-    """Single optimization step. Logs metrics, validates batch keys."""
-    required = {"inputs", "labels"}
-    missing = required - batch.keys()
-    if missing:
-        raise KeyError(f"batch missing required keys: {missing}")
+### Boundary Validation via Gatekeeper Classes
 
-    def loss_fn(params: dict) -> jax.Array:
-        logits = state.apply_fn(params, batch["inputs"])
-        return cross_entropy_loss(logits, batch["labels"], cfg)
+Do not let raw external input propagate. Normalize immediately.
 
-    loss, grads = jax.value_and_grad(loss_fn)(state.params)
-    grad_norm = jnp.sqrt(sum(jnp.sum(g**2) for g in jax.tree.leaves(grads)))
+class RequestValidator:
+    def __init__(self, schema: dict[str, type]) -> None:
+        self._schema = schema
 
-    if not jnp.isfinite(loss):
-        logger.error("non-finite loss at step %d: %s", step, float(loss))
-        raise RuntimeError(f"non-finite loss at step {step}")
+    def validate(self, payload: dict[str, object]) -> dict[str, object]:
+        missing = [k for k in self._schema if k not in payload]
+        if missing:
+            raise ValueError(f"Missing keys: {missing}")
+        for key, expected_type in self._schema.items():
+            if not isinstance(payload[key], expected_type):
+                raise TypeError(f"{key} expected {expected_type}, got {type(payload[key])}")
+        return payload
 
-    new_state = state.apply_gradients(grads=grads)
-    metrics = {"loss": float(loss), "grad_norm": float(grad_norm)}
-    logger.debug("step %d  loss %.5f  grad_norm %.5f", step, *metrics.values())
-    return new_state, metrics
-```
 
-Why it's good: every input is checked, every failure mode is named,
-every value that could explode is logged with context, the loss
-function has a docstring future-you can actually read, and the
-config rejects bad values at construction time instead of producing
-NaNs three hours into training.
+### Stateful Orchestrators (Not Pipelines of Functions)
 
-## Bad example
+Centralize execution flow in a class that owns progress, metrics, and failure handling.
 
-```python
-def step(p, b):
-    g = grad(loss)(p, b)
-    return [pi - 1e-3 * gi for pi, gi in zip(p, g)]
+class JobRunner:
+    def __init__(self, steps: list[JobStep]) -> None:
+        self._steps = steps
+        self._current_idx = 0
 
-for i in range(10000):
-    p = step(p, next(it))
-    if i % 500 == 0: print(loss(p, b))
-```
+    def run(self) -> None:
+        for idx, step in enumerate(self._steps):
+            self._current_idx = idx
+            try:
+                logger.info("Running step", extra={"step": step.name})
+                step.execute()
+            except StepError as e:
+                logger.error("Step failed", extra={"step": step.name})
+                raise RuntimeError(f"Job failed at step {step.name}") from e
 
-Why it's bad in this context: no types, no validation, no logging
-infrastructure, no checkpointing, no config, hardcoded LR, silently
-trains through NaNs, can't be resumed, can't be debugged from logs
-alone, can't be tested. Fine for a notebook, unacceptable for code
-that runs unattended. If you want this style, use `code-style-raw`.
 
-## When to reach for this skill vs the others
+class JobStep(Protocol):
+    name: str
+    def execute(self) -> None: ...
 
-- `code-style-raw`: one file, one idea, you're the only reader, the
-  run finishes in minutes.
-- `code-style`: personal research code, multiple files, Hydra
-  configs, you'll rerun it for weeks but you're still the only user.
-- `code-style-prod`: shared code, long jobs, anything where a silent
-  failure costs more than rewriting the file would.
+
+### Strongly-Typed Config with Versioning
+
+class TrainingConfig:
+    version: Literal["v1"] = "v1"
+
+    def __init__(self, batch_size: int, lr: float) -> None:
+        if batch_size <= 0:
+            raise ValueError("batch_size must be positive")
+        if not (0.0 < lr < 1.0):
+            raise ValueError("lr out of range")
+        self.batch_size = batch_size
+        self.lr = lr
+
+
+### Error Translation Layers
+
+Translate low-level errors into domain-relevant failures.
+
+class DataLoader:
+    def load(self, path: str) -> bytes:
+        try:
+            with open(path, "rb") as f:
+                return f.read()
+        except OSError as e:
+            logger.error("File read failed", extra={"path": path})
+            raise DataAccessError(f"Failed to read {path}") from e
+
+
+class DataAccessError(Exception):
+    pass
+
+
+### Metrics as First-Class Objects
+
+Avoid ad-hoc logging; encapsulate metrics with lifecycle.
+
+class MetricTracker:
+    def __init__(self) -> None:
+        self._values: dict[str, float] = {}
+
+    def record(self, name: str, value: float) -> None:
+        self._values[name] = value
+        logger.debug("Metric recorded", extra={"metric": name, "value": value})
+
+    def snapshot(self) -> dict[str, float]:
+        return dict(self._values)
+
+
+### Dependency Injection via Constructor
+
+No hidden globals. All dependencies are explicit.
+
+class Trainer:
+    def __init__(
+        self,
+        model: Model,
+        optimizer: Optimizer,
+        metrics: MetricTracker
+    ) -> None:
+        self._model = model
+        self._optimizer = optimizer
+        self._metrics = metrics
+
+    def train_step(self, batch: Batch) -> None:
+        loss = self._model.forward(batch)
+        self._optimizer.step(loss)
+        self._metrics.record("loss", loss)

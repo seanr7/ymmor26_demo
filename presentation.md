@@ -1,10 +1,9 @@
 # Claude Code
 
-## 1. Framing
-- audience: lab using Claude for numerical / research code
-- goal: practical workflow, not full feature tour
-- theme: make Claude Code fit your repo and habits
-
+## 1. Agent vs Web view
+- agent or CLI tool has all context
+- more custom configure 
+- 
 ## 2. Skills
 - what they are: reusable repo-specific instructions
 - why they matter: avoid repeating prompts; enforce local conventions
@@ -43,13 +42,15 @@
 - branch = line of history
 - worktree = separate workspace
 
-## 6. Useful commands
-- `/context`
-- `/model`
-- `/compact`
-- `/rename`
-- `/branch`
-- `/memory`
+## Useful Commands
+
+- `/context` — Shows current token usage broken down by category (system prompt, tools, skills, messages, etc.)
+- `/model` — Switch the AI model Claude Code is using for the session.
+- `/compact` — Manually summarize and compress conversation history to free up context space.
+- `/rename` — Rename the current conversation/session.
+- `/branch` — Create a new conversation branch from the current point.
+- `/memory` — View and edit your persistent memory files (like CLAUDE.md).
+- `/clear` — Clear the current conversation and start fresh with a clean context.
 
 ## 7. Token usage
 - compressing context 

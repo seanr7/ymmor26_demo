@@ -1,3 +1,7 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 ## Worktree & Branching Workflow (default)
 
 Unless I say otherwise, follow this for every code-changing task. This is a solo repo with no CI/CD; pushes to the remote are just backups. All review and merging happens locally.
@@ -41,28 +45,6 @@ If I start a second task while another worktree is still open, create a fresh wo
 
 - If I say "stay on this branch", "work in place", or "quick fix", skip the worktree step.
 - If the workflow is blocked (dirty `main`, worktree path exists, branch name taken), stop and tell me before improvising.
-
-# CLAUDE.md
-
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
-## Git Workflow (default — assume unless I say otherwise)
-
-I work solo on this repo. Branches exist for review and safety, not for collaboration. Follow this workflow on every task that touches code:
-
-**1. Start on a fresh branch.** Before making any edits, run `git status` and `git branch --show-current`. If the working tree is dirty or there's half-finished work, **stop and ask me how to proceed** — don't guess, don't stash silently, don't try to work around it. Use your normal question-asking flow and wait for my answer. If I'm on `main` and the tree is clean, create and switch to a new branch named `claude/<short-kebab-description>` (e.g. `claude/fix-auth-timeout`, `claude/refactor-config-loader`). If I'm already on a `claude/*` branch and it's related to the new task, ask whether to continue on it or start a new one. Never edit directly on `main`.
-
-**2. Work and commit in logical chunks.** Make small, focused commits as you go rather than one giant commit at the end. Use clear conventional-style messages (`fix:`, `feat:`, `refactor:`, `chore:`, `docs:`, `test:`). Don't add co-author trailers or "Generated with Claude" footers unless I ask.
-
-**3. Stop at "ready for review."** When the task is done, do not merge and do not push. Instead: summarize what changed, show me `git log main..HEAD --oneline` and `git diff main...HEAD --stat`, then **ask me if I'd like to walk through the code together** (e.g. file by file, or focused on the trickiest parts) before I review on my own. Wait for my response before doing anything else.
-
-**4. Merging is my call, but you can execute it.** When I say to merge, use a fast-forward or `--no-ff` merge into `main` based on what I ask for (default to `--no-ff` so the branch history is preserved). After merging, delete the local branch.
-
-**5. Pushing is for backup only.** Only push when I explicitly say "push" or "save to remote." When pushing, push both `main` and any relevant branches. Treat the remote as a backup mirror, not a collaboration point — no PRs, no `gh pr create` unless I ask.
-
-**6. Never do any of these without explicit permission:** force-push, rewrite history on `main`, delete remote branches, `git reset --hard` on anything with uncommitted work, or run `git clean`.
-
-**When in doubt, ask.** If any step is ambiguous — dirty tree, unclear branch intent, unexpected merge conflicts, anything — stop and ask me a question rather than guessing. I'd much rather answer a quick question than untangle a wrong assumption.
 
 ## This Project
 

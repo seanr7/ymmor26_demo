@@ -1,6 +1,7 @@
 ---
 name: cs-notebook
 description: Enforces a minimal, math-first style for self-contained Jupyter notebooks used as demos and validations of a single idea. Use when creating or editing .ipynb files meant to be run top-to-bottom as a standalone artifact — algorithm demos, sanity checks, paper reproductions, or visual validations with matplotlib plots. Optimizes for mathematical clarity, narrative flow, and the notebook actually executing end-to-end without errors.
+disable-model-invocation: true
 ---
 
 # code-style-notebook
