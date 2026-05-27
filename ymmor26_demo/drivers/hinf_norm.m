@@ -10,10 +10,10 @@ function gamma = hinf_norm(A, B, C, D)
 %   the H-infinity norm is less than gamma if and only if the 2n x 2n
 %   Hamiltonian matrix
 %
-%     H(gamma) = [ A + B*D'*(gamma^2*I - D*D')^{-1}*C,
-%                  B*(I + D'*(gamma^2*I - D*D')^{-1}*D)*B'  ;
-%                 -C'*(I + D*(gamma^2*I - D*D')^{-1}*D')*C,
-%                 -(A + B*D'*(gamma^2*I - D*D')^{-1}*C)'    ]
+%     H(gamma) = [ A + B*S^{-1}*D'*C,        -B*S^{-1}*B'              ]
+%               [ gamma^2*C'*R^{-1}*C,      -(A + B*S^{-1}*D'*C)'    ]
+%
+%   where S = gamma^2*I - D'*D  (m x m) and R = gamma^2*I - D*D'  (p x p).
 %
 %   has no eigenvalues on the imaginary axis. Bisection is performed on
 %   gamma starting from a rough upper bound.
@@ -99,8 +99,8 @@ Sg  = g2 * eye(size(DtD, 1)) - DtD;   % gamma^2*I - D'*D  (m x m)
 
 % Hamiltonian matrix (2n x 2n).
 H11 =  A + B * (D' / Rg) * C;
-H12 =  B / Sg * B';
-H21 = -C' / Rg * C;
+H12 = -B / Sg * B';
+H21 =  g2 * (C' / Rg * C);
 H22 = -(A + B * (D' / Rg) * C)';
 
 Ham = [H11, H12; H21, H22];
