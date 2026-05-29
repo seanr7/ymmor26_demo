@@ -1,0 +1,38 @@
+{
+  "respectGitignore": true,
+  "cleanupPeriodDays": 14,
+  "permissions": {
+    "allow": [
+      "Bash(docker compose up *)",
+      "Bash(docker compose down *)",
+      "Bash(make *)",
+      "WebFetch(domain:localhost)",
+      "WebFetch(domain:internal.mycompany.com)",
+      "Bash(git checkout:*)",
+      "Bash(git merge:*)"
+    ],
+    "deny": [
+      "Bash(rm *)",
+      "Bash(sudo *)",
+      "Bash(git push *)",
+      "Read(.env)",
+      "Read(.env.*)",
+      "Read(*.pem)",
+      "Read(~/.ssh/*)"
+    ],
+    "ask": [
+      "Bash(docker *)",
+      "WebFetch(*)"
+    ],
+    "defaultMode": "acceptEdits",
+    "additionalDirectories": [
+      "../shared-utils",
+      "../design-tokens"
+    ]
+  },
+  "model": "claude-sonnet-4-6",
+  "language": "en",
+  "autoUpdatesChannel": "stable",
+  "plansDirectory": ".claude/plans",
+  "showTurnDuration": true
+}

@@ -1,0 +1,10 @@
+SCRIPT: RUNME_MOR_COMPARISON
+============================
+
+LOADING ISS 1412 BENCHMARK.
+---------------------------
+Loaded: n=1412, m=3, p=3 in 0.01 s
+
+COMPUTING FULL-SYSTEM NORMS.
+----------------------------
+[Warning: Name is nonexistent or not a directory: /private/var/folders/rl/_9683mt10jx2391c6b5cl7l40000gn/T/Editor_pmuzu/drivers] 
